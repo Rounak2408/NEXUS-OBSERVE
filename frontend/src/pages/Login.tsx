@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Activity, ShieldCheck, Lock, Mail, Eye, EyeOff, ArrowRight, CheckCircle, Server, Database, Cloud } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { User } from '../types';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('alex.rivera@nexusobserve.io');
@@ -25,7 +26,7 @@ export const Login: React.FC = () => {
     } catch (err: any) {
       // Seamless demo fallback if backend credentials check fails
       if (email === 'alex.rivera@nexusobserve.io' && (password === 'demo123' || password.length >= 4)) {
-        const demoUser = {
+        const demoUser: User = {
           id: 'demo-alex-rivera-id',
           email: 'alex.rivera@nexusobserve.io',
           name: 'Alex Rivera',
