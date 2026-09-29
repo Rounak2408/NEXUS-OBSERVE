@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: nexus-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: nexus_root_password
+      MYSQL_DATABASE: nexus_observe
+      MYSQL_USER: nexus_user
+      MYSQL_PASSWORD: nexus_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: nexus-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      DATABASE_URL: "file:./dev.db"
+      JWT_SECRET: "nexus_observe_jwt_secret_key_2026"
+      DEMO_MODE: "true"
+      AWS_REGION: "us-east-1"
+      AWS_S3_BUCKET: "nexus-observe-telemetry-reports"
+    depends_on:
+      - mysql
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: nexus-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

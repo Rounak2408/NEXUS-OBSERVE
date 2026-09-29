@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  name         String
+  passwordHash String
+  role         String      @default("DEVOPS_ENGINEER") // ADMIN, DEVOPS_ENGINEER, VIEWER
+  avatarUrl    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  incidents    Incident[]  @relation("AssignedIncidents")
+  auditLogs    AuditLog[]
+}
+
+model Server {
+  id             String        @id @default(uuid())
+  name           String
+  host           String
+  environment    String        // Production, Staging, Development
+  serviceType    String        // Load Balancer, Auth API, Web API, Database, Worker, Redis Cache, Payment Gateway, Monitoring
+  monitoringUrl  String?
+  status         String        @default("HEALTHY") // HEALTHY, DEGRADED, CRITICAL, OFFLINE
+  cpuThreshold   Float         @default(80.0)
+  memThreshold   Float         @default(85.0)
+  diskThreshold  Float         @default(90.0)
+  checkInterval  Int           @default(10) // seconds
+  currentCpu     Float         @default(0.0)
+  currentMemory  Float         @default(0.0)
+  currentDisk    Float         @default(0.0)
+  currentLatency Float         @default(0.0)
+  uptimePercent  Float         @default(99.99)
+  lastCheckAt    DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  metrics        Metric[]
+  healthChecks   HealthCheck[]
+  alerts         Alert[]
+  incidents      Incident[]
+  logs           Log[]
+}
+
+model Metric {
+  id          String   @id @default(uuid())
+  serverId    String
+  server      Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  cpu         Float
+  memory      Float
+  disk        Float
+  latencyMs   Float
+  requestsSec Int
+  errorRate   Float
+  networkIn   Float
+  networkOut  Float
+  timestamp   DateTime @default(now())
+
+  @@index([serverId, timestamp])
+}
+
+model HealthCheck {
+  id           String   @id @default(uuid())
+  serverId     String
+  server       Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  statusCode   Int
+  responseTime Float
+  isHealthy    Boolean
+  errorMessage String?
+  timestamp    DateTime @default(now())
+
+  @@index([serverId, timestamp])
+}
+
+model Alert {
+  id             String    @id @default(uuid())
+  serverId       String?
+  server         Server?   @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  title          String
+  message        String
+  severity       String    @default("MEDIUM") // INFO, LOW, MEDIUM, HIGH, CRITICAL
+  isAcknowledged Boolean   @default(false)
+  acknowledgedAt DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model Incident {
+  id           String             @id @default(uuid())
+  title        String
+  description  String
+  severity     String             @default("HIGH") // INFO, LOW, MEDIUM, HIGH, CRITICAL
+  status       String             @default("INVESTIGATING") // INVESTIGATING, IDENTIFIED, MONITORING, RESOLVED, CLOSED
+  serverId     String?
+  server       Server?            @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  assignedToId String?
+  assignedTo   User?              @relation("AssignedIncidents", fields: [assignedToId], references: [id])
+  startedAt    DateTime           @default(now())
+  resolvedAt   DateTime?
+  durationMins Int?
+  timeline     IncidentTimeline[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model IncidentTimeline {
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  message    String
+  author     String   @default("System")
+  timestamp  DateTime @default(now())
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  serverId  String?
+  server    Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  level     String   @default("INFO") // DEBUG, INFO, WARN, ERROR, FATAL
+  message   String
+  metadata  String?  // JSON string
+  source    String   @default("app")
+  timestamp DateTime @default(now())
+
+  @@index([level, timestamp])
+}
+
+model File {
+  id          String   @id @default(uuid())
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  s3Key       String
+  s3Bucket    String
+  category    String   // Report, Log Archive, CSV Export, Diagnostic File
+  environment String   @default("Production")
+  uploadedBy  String   @default("System")
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  category  String   // Critical, Incident, Recovery, System
+  read      Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String
+  ipAddress String?
+  timestamp DateTime @default(now())
+}
