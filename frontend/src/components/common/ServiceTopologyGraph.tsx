@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Server, Database, ShieldCheck, Globe, Cpu, Layers, HardDrive, Info, Activity } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Server, Database, ShieldCheck, Globe, Cpu, Layers, HardDrive, Info, Activity, MoveRight } from 'lucide-react';
 import { TopologyNode, TopologyLink } from '../../types';
 
 interface ServiceTopologyGraphProps {
@@ -15,6 +15,13 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<TopologyNode | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
+    }
+  }, []);
 
   // Position nodes into 4 Tiers:
   // Tier 0: Internet
@@ -45,7 +52,7 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
     const itemsInTier = tiers[tier];
     const indexInTier = itemsInTier.findIndex(x => x.id === node.id);
 
-    // Tier horizontal positions
+    // Tier horizontal positions starting from left=100px
     const xMap: Record<number, number> = {
       0: 100,
       1: 340,
@@ -84,31 +91,40 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
     }
   };
 
-  const NODE_WIDTH = 160; // 80px radius from center
+  const NODE_WIDTH = 160;
   const HALF_WIDTH = NODE_WIDTH / 2;
 
   return (
-    <div className="bg-[#121722] border border-slate-800/80 rounded-xl p-5 relative overflow-hidden">
+    <div className="bg-[#121722] border border-slate-800/80 rounded-xl p-4 md:p-5 relative overflow-hidden">
       {/* Topology Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <div>
           <h3 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
             <Layers className="w-4 h-4 text-blue-400" />
-            Infrastructure Topology Map & Connected Graph
+            Infrastructure Topology Map & Dependency Flow
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">Interactive end-to-end service dependency traffic flow</p>
+          <p className="text-xs text-slate-400 mt-0.5">Interactive live service dependency traffic flow</p>
         </div>
-        <div className="flex items-center gap-4 text-xs font-mono text-slate-400">
+        <div className="flex items-center gap-3 text-xs font-mono text-slate-400">
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Healthy</span>
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" /> Degraded</span>
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500" /> Critical</span>
         </div>
       </div>
 
-      {/* Canvas Viewport Container */}
-      <div className="relative w-full h-[580px] bg-[#0B0E14] border border-slate-900 rounded-lg overflow-x-auto overflow-y-hidden flex items-center justify-center p-2">
-        {/* SVG Connections Overlay */}
-        <svg className="absolute inset-0 w-[1080px] h-[560px] pointer-events-none left-1/2 -translate-x-1/2">
+      {/* Mobile Swipe Hint */}
+      <div className="md:hidden bg-blue-500/10 border border-blue-500/20 text-blue-300 px-3 py-1 rounded text-[10px] font-mono mb-2 flex items-center justify-between">
+        <span>👈 Scroll left/right to view full topology flow</span>
+        <MoveRight className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+      </div>
+
+      {/* Scrollable Viewport Container starting strictly from left=0 */}
+      <div
+        ref={scrollContainerRef}
+        className="relative w-full h-[570px] bg-[#0B0E14] border border-slate-900 rounded-lg overflow-x-auto overflow-y-hidden p-2"
+      >
+        {/* SVG Connections Overlay aligned to top-left 0,0 */}
+        <svg className="absolute top-0 left-0 w-[1080px] h-[560px] pointer-events-none">
           {links.map((link, idx) => {
             const srcNode = nodes.find(n => n.id === link.source);
             const tgtNode = nodes.find(n => n.id === link.target);
@@ -117,13 +133,12 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
             const src = getCoordinates(srcNode);
             const tgt = getCoordinates(tgtNode);
 
-            // Calculate precise node boundary anchors
+            // Calculate node boundary anchors
             const x1 = src.x + HALF_WIDTH;
             const y1 = src.y;
             const x2 = tgt.x - HALF_WIDTH;
             const y2 = tgt.y;
 
-            // Smooth cubic bezier control points
             const deltaX = Math.abs(x2 - x1) * 0.5;
             const pathD = `M ${x1} ${y1} C ${x1 + deltaX} ${y1}, ${x2 - deltaX} ${y2}, ${x2} ${y2}`;
 
@@ -133,7 +148,6 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
 
             return (
               <g key={`${link.source}-${link.target}-${idx}`}>
-                {/* Connection Line */}
                 <path
                   d={pathD}
                   fill="none"
@@ -142,12 +156,8 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
                   strokeOpacity="0.55"
                   strokeDasharray="4,4"
                 />
-
-                {/* Connection Anchor Dots */}
                 <circle cx={x1} cy={y1} r="3" fill={lineColor} />
                 <circle cx={x2} cy={y2} r="3" fill={lineColor} />
-
-                {/* Animated Traffic Particle */}
                 <circle r="3.5" fill={lineColor}>
                   <animateMotion
                     path={pathD}
@@ -160,7 +170,7 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
           })}
         </svg>
 
-        {/* Nodes layer rendering */}
+        {/* Inner nodes container */}
         <div className="relative w-[1080px] h-[560px] shrink-0">
           {nodes.map(node => {
             const { x, y } = getCoordinates(node);
@@ -202,16 +212,15 @@ export const ServiceTopologyGraph: React.FC<ServiceTopologyGraphProps> = ({
 
       {/* Node Detail Info Footer */}
       {hoveredNode && (
-        <div className="mt-3 bg-[#161C2A] border border-slate-800 rounded-lg p-3 flex items-center justify-between text-xs font-mono animate-in fade-in duration-150">
+        <div className="mt-3 bg-[#161C2A] border border-slate-800 rounded-lg p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-mono animate-in fade-in duration-150">
           <div className="flex items-center gap-2 text-white">
-            <Info className="w-4 h-4 text-blue-400" />
+            <Info className="w-4 h-4 text-blue-400 shrink-0" />
             <span className="font-semibold">{hoveredNode.name}</span>
             <span className="text-slate-400">({hoveredNode.host || 'Cluster Domain'})</span>
           </div>
-          <div className="flex items-center gap-4 text-slate-300">
+          <div className="flex items-center gap-4 text-slate-300 text-[11px]">
             <span>Latency: <strong className="text-white">{hoveredNode.latency}ms</strong></span>
             <span>CPU: <strong className="text-white">{hoveredNode.cpu}%</strong></span>
-            <span>Memory: <strong className="text-white">{hoveredNode.memory || 45}%</strong></span>
             <span>Status: <strong className={hoveredNode.status === 'HEALTHY' ? 'text-emerald-400' : 'text-rose-400'}>{hoveredNode.status}</strong></span>
           </div>
         </div>

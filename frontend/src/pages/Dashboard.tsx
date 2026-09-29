@@ -205,14 +205,14 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Time range selector */}
-          <div className="flex items-center bg-[#161C2A] border border-slate-800 rounded-lg p-1 text-xs font-mono">
+          <div className="flex items-center bg-[#161C2A] border border-slate-800 rounded-lg p-1 text-xs font-mono overflow-x-auto max-w-full">
             {['1H', '6H', '24H', '7D', '30D'].map(range => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                className={`px-2 md:px-2.5 py-1 rounded-md text-[10px] md:text-[11px] font-medium transition-colors shrink-0 ${
                   timeRange === range
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-blue-600 text-white shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -224,7 +224,7 @@ export const Dashboard: React.FC = () => {
 
         <div className="h-72 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trends}>
+            <AreaChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorLatency" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
@@ -236,10 +236,10 @@ export const Dashboard: React.FC = () => {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-              <XAxis dataKey="time" stroke="#64748B" fontSize={11} fontFamily="IBM Plex Mono" tickLine={false} />
-              <YAxis stroke="#64748B" fontSize={11} fontFamily="IBM Plex Mono" tickLine={false} />
+              <XAxis dataKey="time" stroke="#64748B" fontSize={10} fontFamily="IBM Plex Mono" tickLine={false} interval="preserveStartEnd" minTickGap={20} />
+              <YAxis stroke="#64748B" fontSize={10} fontFamily="IBM Plex Mono" tickLine={false} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#121722', borderColor: '#334155', borderRadius: '8px', fontSize: '12px', fontFamily: 'IBM Plex Mono' }}
+                contentStyle={{ backgroundColor: '#121722', borderColor: '#334155', borderRadius: '8px', fontSize: '11px', fontFamily: 'IBM Plex Mono' }}
                 itemStyle={{ color: '#F8FAFC' }}
               />
               <Area type="monotone" dataKey="latency" name="Latency (ms)" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorLatency)" />
