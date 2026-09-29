@@ -1,7 +1,22 @@
 import { prisma } from './db';
 import bcrypt from 'bcryptjs';
 
+async function connectWithRetry() {
+  let attempts = 15;
+  while (attempts > 0) {
+    try {
+      await prisma.$connect();
+      return;
+    } catch (e) {
+      console.log(`[Seed] Waiting for DB connection... (${attempts} attempts remaining)`);
+      attempts--;
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+}
+
 async function main() {
+  await connectWithRetry();
   console.log('[Seed] Wiping existing database data...');
   await prisma.auditLog.deleteMany();
   await prisma.notification.deleteMany();
