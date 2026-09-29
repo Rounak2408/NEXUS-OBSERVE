@@ -259,6 +259,7 @@ async function main() {
 
   console.log('[Seed] Generating historical 24h metrics...');
   const now = Date.now();
+  const allMetrics = [];
   for (const server of createdServers) {
     for (let i = 24; i >= 0; i--) {
       const time = new Date(now - i * 60 * 60 * 1000);
@@ -269,22 +270,21 @@ async function main() {
       const cpuVal = Math.max(10, Math.min(98, +(baseCpu + (Math.random() - 0.5) * 12).toFixed(1)));
       const latVal = Math.max(5, Math.min(1000, +(baseLat + (Math.random() - 0.5) * 40).toFixed(0)));
 
-      await prisma.metric.create({
-        data: {
-          serverId: server.id,
-          cpu: cpuVal,
-          memory: Math.max(20, Math.min(95, +(server.currentMemory + (Math.random() - 0.5) * 6).toFixed(1))),
-          disk: server.currentDisk,
-          latencyMs: latVal,
-          requestsSec: Math.floor(150 + Math.random() * 300),
-          errorRate: isCheckout && i < 3 ? 3.42 : +(Math.random() * 0.15).toFixed(2),
-          networkIn: +(3.2 + Math.random() * 4).toFixed(2),
-          networkOut: +(11.4 + Math.random() * 8).toFixed(2),
-          timestamp: time
-        }
+      allMetrics.push({
+        serverId: server.id,
+        cpu: cpuVal,
+        memory: Math.max(20, Math.min(95, +(server.currentMemory + (Math.random() - 0.5) * 6).toFixed(1))),
+        disk: server.currentDisk,
+        latencyMs: latVal,
+        requestsSec: Math.floor(150 + Math.random() * 300),
+        errorRate: isCheckout && i < 3 ? 3.42 : +(Math.random() * 0.15).toFixed(2),
+        networkIn: +(3.2 + Math.random() * 4).toFixed(2),
+        networkOut: +(11.4 + Math.random() * 8).toFixed(2),
+        timestamp: time
       });
     }
   }
+  await prisma.metric.createMany({ data: allMetrics });
 
   console.log('[Seed] Creating active & historical incidents...');
   const inc1 = await prisma.incident.create({
