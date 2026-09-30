@@ -28,14 +28,19 @@ router.post('/login', async (req, res) => {
     
     // Auto-create demo user if missing in DEMO_MODE or for default demo email
     if (!user && (CONFIG.DEMO_MODE || email === 'alex.rivera@nexusobserve.io')) {
-      const passwordHash = await bcrypt.hash('demo123', 10);
+      const passwordHash = await bcrypt.hash(password || 'demo123', 10);
+      const isAlex = email.toLowerCase().includes('alex');
+      const nameFromEmail = isAlex ? 'Alex Rivera' : email.split('@')[0].replace('.', ' ');
+      const avatarUrl = isAlex
+        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(nameFromEmail)}&background=2563eb&color=ffffff&bold=true`;
       user = await prisma.user.create({
         data: {
           email,
-          name: 'Alex Rivera',
+          name: nameFromEmail,
           passwordHash,
-          role: 'ADMIN',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+          role: isAlex ? 'ADMIN' : 'DEVOPS_ENGINEER',
+          avatarUrl,
         }
       });
     }
@@ -94,12 +99,14 @@ router.post('/register', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563eb&color=ffffff&bold=true`;
     const user = await prisma.user.create({
       data: {
         name,
         email,
         passwordHash,
         role: role || 'DEVOPS_ENGINEER',
+        avatarUrl,
       }
     });
 

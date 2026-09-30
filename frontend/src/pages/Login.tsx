@@ -31,12 +31,17 @@ export const Login: React.FC = () => {
       navigate('/dashboard');
     } catch (err: any) {
       // Fail-safe demo fallback for both register and login
+      const displayName = isRegister
+        ? (name || 'New Engineer')
+        : (email.toLowerCase().includes('alex') ? 'Alex Rivera' : (email.split('@')[0] || 'User'));
       const fallbackUser: User = {
-        id: isRegister ? `user-${Date.now()}` : 'demo-alex-rivera-id',
+        id: isRegister ? `user-${Date.now()}` : 'demo-user-id',
         email: email || 'alex.rivera@nexusobserve.io',
-        name: isRegister ? (name || 'New Engineer') : 'Alex Rivera',
-        role: isRegister ? role : 'ADMIN',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+        name: displayName,
+        role: isRegister ? role : (email.toLowerCase().includes('alex') ? 'ADMIN' : 'DEVOPS_ENGINEER'),
+        avatarUrl: email.toLowerCase().includes('alex.rivera')
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+          : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=ffffff&bold=true`,
       };
       const fallbackToken = 'demo_jwt_token_nexus_observe_2026';
       login(fallbackToken, fallbackUser);

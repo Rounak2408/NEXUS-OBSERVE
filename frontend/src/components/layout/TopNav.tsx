@@ -104,7 +104,11 @@ export const TopNav: React.FC<TopNavProps> = ({
             className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-800/50 transition-colors"
           >
             <img
-              src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'}
+              src={
+                user?.avatarUrl && user.avatarUrl.trim() !== ''
+                  ? user.avatarUrl
+                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=2563eb&color=ffffff&bold=true`
+              }
               alt={user?.name}
               className="w-7 h-7 md:w-8 md:h-8 rounded-full border border-blue-500/50 object-cover"
             />
